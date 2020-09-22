@@ -1,8 +1,8 @@
 CC = "g++"
 PROJECT = opgaver # Navnet på dit projekt (Den mappe cpp filen ligger i)
-SRC = hist.cpp # Navnet på din cpp fil.
+SRC = filter.cpp myOpenCVFunctions.h myOpenCVFunctions.cpp  # Navnet på din cpp fil.
 
 LIBS =  `pkg-config opencv4 --cflags --libs`
 
 $(PROJECT) : $(SRC)
-	$(CC) $(SRC) -o $(PROJECT) $(LIBS)
+	$(CC) $(SRC) -o $(PROJECT) $(LIBS) 

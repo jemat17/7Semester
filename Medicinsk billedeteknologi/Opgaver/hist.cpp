@@ -3,6 +3,8 @@
 #include <iostream>
 #include <stdint.h>
 #include <math.h>
+#include "myOpenCVFunctions.h"
+
 
 
 
@@ -27,57 +29,45 @@ tegn histogrammet med værdierne fra arr
 
 int main()
 {
-    int cout = 0, nSize = 256;
+    int cout = 0;
+    float rangeOfPixels = 256, windowSize = 700;
+
+    int histogram1[256] = {0};
+
     cv::Mat image;
-    cv::Mat bins = cv::Mat::zeros(nSize,nSize, CV_8UC1 ); 
-    float histogramBinCount[256] = {0}; // Lav array til at have count i 
+    cv::Mat bins = cv::Mat::zeros(windowSize,windowSize, CV_8UC1 ); // hvorfor? 256*256
+    int histogramBinCount[256] = {0}; // Lav array til at have count i 
 
-    image = cv::imread("./sample.jpg", cv::IMREAD_GRAYSCALE); //  for at få grayscale image
-    // Count each bin for the histogram
-  for (int i = 0; i<image.rows; i++)
-  {
-      for (int j = 0; j<image.cols; j++)
-      {
-         histogramBinCount[image.at<uchar>(i,j)]++; // Vælg < > efter type af billede, grayscale: 8 bit (ex uint8_t) 
-     /* 
-        Farve: <Vec3d> så den ved der er tre kanaler
-        Her til går den kun den første pixel (blå) RGB er omvendt i openCV så den hedder BGR
-        image.at<uint8_t>(i,j)[0] // tilgår blå
-        image.at<uint8_t>(i,j)[1] // tilgår grøn
-        image.at<uint8_t>(i,j)[2] // tilgår rød
-     */
-      };
-  }
+    image = cv::imread("./hest.jpg", cv::IMREAD_GRAYSCALE); //  for at få grayscale image
+
+
   /*Find max value*/
-    float maxP = 0;
-    for (int i = 0; i<nSize;i++)
-    {
-        if(maxP<histogramBinCount[i]) // gemmer max værdi i maxP
-            maxP=histogramBinCount[i];
-    }
-    nSize = (sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]));
-    // Print array 
-    for(int i = 0; i < nSize; i++){
-       std::cout << i << ":    " << histogramBinCount[i] << std::endl;
-    }
+    float maxP = image.rows * image.cols;
 
+    rangeOfPixels = (sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]));
+    // Print array 
+    for(int i = 0; i < rangeOfPixels; i++){
+       //std::cout << i << ":    " << histogramBinCount[i] << std::endl;
+    }
+    float sum = 0;
     // Normalise
-    for(int i = 0; i < nSize; i++)
+    for(int i = 0; i < rangeOfPixels; i++)
     {
-       int normalizedHeightOfBin = cvRound(histogramBinCount[i]*nSize/maxP);
+       float normalizedHeightOfBin = histogramBinCount[i]/maxP; //hvorfor normalisere vi med MAX?
+       std::cout << i << ":    " << normalizedHeightOfBin << std::endl;
+     
+       sum += normalizedHeightOfBin;
        cv::line
             (
            bins, 
-           cv::Point(i, nSize-normalizedHeightOfBin), cv::Point(i, nSize), 
-           cv::Scalar::all(255)
+           cv::Point(i*(windowSize/rangeOfPixels), windowSize), cv::Point(i*(windowSize/rangeOfPixels), windowSize-normalizedHeightOfBin), // gange 100 for procent
+           cv::Scalar::all(255) //hvid farve
            );
     }
-        std::cout << "n " << nSize << "  normalized " << maxP << std::endl;
     cv::imshow("name", bins);
     cv::imshow("hest", image);
     cv::waitKey();
-  return 0;
-
+  return 0;    
 }
 
 
