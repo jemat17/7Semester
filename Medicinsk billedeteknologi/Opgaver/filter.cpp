@@ -28,7 +28,7 @@ int main()
 {
     cv::Mat img1; 
     float padding = 3;
-    int weighted[3][3] = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
+    //int weighted[3][3] = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
     int type = 0; // 0 (grayscale), 1 (color), -1 (unchanged)
 
 
@@ -39,16 +39,17 @@ int main()
     cv::Mat thresholdImage = cv::Mat::zeros(paddedImage.rows, paddedImage.cols, CV_8UC1 );
 
     image.zeroPadding(&img1, &padding, &paddedImage);
-    image.thredsholdedImage(&paddedImage);
-    cv::imshow("image2 \n", paddedImage); // Show window 
-    cv::waitKey(0);
     
     image.connectedComponentsAnalysisFour(&paddedImage);
-    
-    //image.filter(&paddedImage, &padding, &filteredImage, weighted);  
 
-    cv::imshow("image1 \n", img1); // Show window 
-    cv::imshow("image2 \n", paddedImage); // Show window 
+    //image.binarthredsholdedImage(&paddedImage);
+    //image.connectedComponentsAnalysisRecursion(&paddedImage);
+
+    //image.filter(&paddedImage, &padding, &filteredImage, weighted);  
+    cv::namedWindow("img1", cv::WINDOW_AUTOSIZE); 
+    cv::imshow("img1", img1); // Show window 
+    cv::namedWindow("connectedComponentsAnalysisRecursion1", cv::WINDOW_AUTOSIZE); 
+    cv::imshow("connectedComponentsAnalysisRecursion1", paddedImage); // Show window 
     
     cv::waitKey(0);
 

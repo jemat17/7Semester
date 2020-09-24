@@ -57,6 +57,11 @@
         "map": "cpp",
         "set": "cpp",
         "iomanip": "cpp",
-        "myOpencvFucntions": "cpp"
+        "myOpencvFucntions": "cpp",
+        "strstream": "cpp",
+        "bitset": "cpp",
+        "cfenv": "cpp",
+        "typeindex": "cpp",
+        "variant": "cpp"
     }
 }

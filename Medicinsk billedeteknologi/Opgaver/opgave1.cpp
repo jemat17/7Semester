@@ -46,7 +46,7 @@ void menu(cv::Mat image)
     }
    
  
- case 2:
+ case 2:  
     cv::namedWindow(image1); // Create window 
     cv::imshow(image1, image); // Show window 
     cv::waitKey(0);    // Close window whan key pressed

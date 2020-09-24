@@ -3,10 +3,12 @@
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
 #include <iostream>
 #include <stdint.h>
 #include <math.h>
 #include <string>
+#include <vector>
 
 class myOpencvFucntions
 {
@@ -16,10 +18,13 @@ class myOpencvFucntions
         void showHistogram();
         int getCols(cv::Mat *image);
         int getRows(cv::Mat *image);
-        //void filter(cv::Mat *imageIn, float *k, cv::Mat *imageOut, int weighted[3][3]);
+        void filter(cv::Mat *imageIn, float *k, cv::Mat *imageOut, int weighted[3][3]);
         void zeroPadding(cv::Mat *image, float *k, cv::Mat *paddedImage);
-        void thredsholdedImage(cv::Mat *image);
+        void binarthredsholdedImage(cv::Mat *image);
         void connectedComponentsAnalysisFour(cv::Mat *thresholdImage);
+        void connectedComponentsAnalysisRecursion(cv::Mat *thresholdImage);
+        void erodeDilate(cv::Mat *thresholdImage);
+        void RCC(cv::Mat *thresholdImage, int i, int j, int label);
 
     
     
