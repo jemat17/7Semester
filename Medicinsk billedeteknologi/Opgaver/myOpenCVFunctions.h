@@ -18,7 +18,7 @@ class myOpencvFucntions
         void showHistogram();
         int getCols(cv::Mat *image);
         int getRows(cv::Mat *image);
-        void filter(cv::Mat *imageIn, float *k, cv::Mat *imageOut, int weighted[3][3]);
+        void filter(cv::Mat *imageIn, float *k, cv::Mat *imageOut, cv::Mat *kernal);
         void zeroPadding(cv::Mat *image, float *k, cv::Mat *paddedImage);
         void binarthredsholdedImage(cv::Mat *image);
         void connectedComponentsAnalysisFour(cv::Mat *thresholdImage);

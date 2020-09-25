@@ -56,20 +56,21 @@ int myOpencvFucntions::getRows(cv::Mat *image) {
 
 
 
-void myOpencvFucntions::filter(cv::Mat *imageIn, float *k, cv::Mat *imageOut, int weighted[3][3]){
-    float indexCols = (sizeof weighted[0] / sizeof(int) - 1) / 2;
-    float indexRows = (sizeof weighted / sizeof weighted[0] -1) / 2;
-    for(int i = indexRows; i < imageIn->rows - indexRows; i++) {
-        for(int j = indexCols; j < imageIn->cols - indexCols; j++) {
-            int weightedCounter1 = 0;
-            int weightedCounter2 = 0;
+void myOpencvFucntions::filter(cv::Mat *imageIn, float *k, cv::Mat *imageOut, cv::Mat *kernal){
+    float index = (*k-1)/2; // A number for indexing correct acording to padding size
+
+    // Step through pixels and calculate the sum of a filter and devide by filter size (K*K)
+    for(int i = index; i < imageIn->rows - index; i++) {
+        for(int j = index; j < imageIn->cols - index; j++) {
             float sum = 0;
-            for(int b = i - indexRows; b <= i + indexRows; b++) {
-                for(int h = j - indexCols; h <= j + indexCols; h++){
-                    sum += imageIn->at<uchar>( b , h ) * weighted[weightedCounter1][weightedCounter2];
-                    weightedCounter1++;
-                    }  
-                    weightedCounter2++;
+            int counter1 = 0, counter2 = 0;
+            for(int b = i - index; b <= i + index; b++) {
+                for(int h = j - index; h <= j + index; h++){
+                    sum += imageIn->at<uchar>( b , h ) * kernal->at<uchar>(counter1 , counter2);
+                    counter2++;
+                    }
+                counter2 = 0;     
+                counter1++; 
                 }
             imageOut->at<uchar>(i , j) =  round(sum / (*k * *k));
             }
@@ -102,7 +103,7 @@ void myOpencvFucntions::binarthredsholdedImage(cv::Mat *image) {
             if( image->at<uchar>( i , j ) < 120 ) { //Aner ikke om 120 er en god værdi
                 image->at<uchar>( i , j ) = -1;
             }else { 
-                image->at<uchar>( i , j ) = 0;
+                image->at<uchar>( i , j ) =0;
             }
         }
     }
@@ -127,9 +128,9 @@ uchar til 32 bit, overflow med label (4007)
 void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage){
     thresholdImage->convertTo(*thresholdImage, CV_32FC1);
     // Thredshold billedet.
-    for( int i = 0; i < thresholdImage->rows; i++ ) {
-        for( int j = 0; j < thresholdImage->cols; j++) {
-            if( thresholdImage->at<float>( i , j ) < 120 ) { //Aner ikke om 120 er en god værdi
+    for( int i = 1; i < thresholdImage->rows -1; i++ ) {
+        for( int j = 1; j < thresholdImage->cols -1; j++) {
+            if( thresholdImage->at<float>( i , j ) < 200 ) { //Aner ikke om 120 er en god værdi
                 thresholdImage->at<float>( i , j ) = -1;
             }else { 
                 thresholdImage->at<float>( i , j ) = 0;
@@ -140,38 +141,37 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
      erodeDilate(thresholdImage);
 
     int label = 0;
-    for( int i = 1; i < thresholdImage->rows -1; i++ ) {
-        for( int j = 1; j < thresholdImage->cols -1; j++ ) {
+    for( int i = 1; i < thresholdImage->rows-1; i++ ) {
+        for( int j = 1; j < thresholdImage->cols-1; j++ ) {
            
             // Check that the value at (i , j) is -1
-            if( thresholdImage->at<float>( i , j ) == -1 ) {
+            if( (int)thresholdImage->at<float>( i , j ) == -1 ) {
                 // Check that the pixels above and to the left is not assigned a label.
-                if(((thresholdImage->at<float>(i-1, j)) == 0) && ((thresholdImage->at<float>(i,j-1)) == 0)) {
+                if(((int)thresholdImage->at<float>(i-1, j) == 0) && ((int)thresholdImage->at<float>(i,j-1) == 0)) {
                         thresholdImage->at<float>( i , j ) = label++; // create new label.
                     }
                 else{
                         // First check, one bigger than zero and the other is 0
-                        if((thresholdImage->at<float>( i-1 , j ) != 0) && (thresholdImage->at<float>( i , j-1 ) == 0)) {
+                        if(((int)thresholdImage->at<float>( i-1 , j ) != 0) && (int)(thresholdImage->at<float>( i , j-1 ) == 0)) {
                              thresholdImage->at<float>( i , j ) = thresholdImage->at<float>( i-1 , j );
                         }
-                        if((thresholdImage->at<float>( i-1 , j ) == 0) && (thresholdImage->at<float>( i , j-1 ) != 0)){
+                        if(((int)thresholdImage->at<float>( i-1 , j ) == 0) && ((int)thresholdImage->at<float>( i , j-1 ) != 0)){
                              thresholdImage->at<float>( i , j ) = thresholdImage->at<float>( i , j-1 );
                         }
                         // Check what label is smallst if both is above 0 and they not are equal to each other
-                         if(!(thresholdImage->at<float>( i , j-1 ) == (thresholdImage->at<float>( i-1 , j )))){
+                         if(!((int)thresholdImage->at<float>( i , j-1 ) == ((int)thresholdImage->at<float>( i-1 , j ))) && ((int)thresholdImage->at<float>( i , j-1 ) != 0 && ((int)thresholdImage->at<float>( i-1 , j ) != 0))){
                             thresholdImage->at<float>( i , j ) = std::min(thresholdImage->at<float>( i-1 , j ) , thresholdImage->at<float>( i , j-1 ));  
                         } 
                         // Assign label if they are equal to each other.
-                        if((thresholdImage->at<float>( i , j-1 )) == (thresholdImage->at<float>( i-1 , j ))){
+                        if(((int)thresholdImage->at<float>( i , j-1 )) == ((int)thresholdImage->at<float>( i-1 , j )) && (thresholdImage->at<float>( i , j-1 ) != 0)){
                             thresholdImage->at<float>( i , j ) = thresholdImage->at<float>( i-1 , j );    
                         }
-                    } 
+                    }
                 }
             }
         }
-    
     std::cout << *thresholdImage;
-    std::cout << label;
+   
     cv::namedWindow("img at first label", cv::WINDOW_AUTOSIZE);
     cv::imshow("img at first label", *thresholdImage);
     cv::waitKey(0);
@@ -180,9 +180,9 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
     * Using a cross to check too be sure.
     */
     std::vector< std::pair < int , int > >  conflicts;
-    for( int i = 1; i < thresholdImage->rows -1; i++ ) {
-        for( int j = 1; j < thresholdImage->cols -1; j++ ) {
-            if( thresholdImage->at<float>( i , j ) > 0 ) {
+    for( int i = 1; i < (int)thresholdImage->rows -1; i++ ) {
+        for( int j = 1; j < (int)thresholdImage->cols -1; j++ ) {
+            if( (int)thresholdImage->at<float>( i , j ) > 0 ) {
                 int arr[4] = {0};
                 arr[0] = thresholdImage->at<float>( i-1 , j );
                 arr[1] = thresholdImage->at<float>( i , j-1 );
@@ -203,33 +203,28 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
     }
     
     /* Ret alle pixels med conflicts vectoren.  */
-
-    for( int i = thresholdImage->rows -1; i >= 0; i-- ) {
-        for( int j = thresholdImage->cols -1; j >= 0 ; j-- ) { 
-            for(int h = (int)conflicts.size() -1; h >= 0 ; h--) {  // Hvordan løses den her?
-                if(thresholdImage->at<float>( i , j ) == conflicts[h].first)
+    for( int i = (int)thresholdImage->rows -1; i >= 0; i-- ) {
+        for( int j = (int)thresholdImage->cols -1; j >= 0 ; j-- ) { 
+            for(int h = (int)conflicts.size() -1; h >= 0 ; h--) {  
+                if((int)thresholdImage->at<float>( i , j ) == conflicts[h].first)
                     thresholdImage->at<float>( i , j ) = conflicts[h].second;
             }
         }
     }
-    cv::namedWindow("img after label is done", cv::WINDOW_AUTOSIZE);
-    cv::imshow("img after label is done", *thresholdImage);
-    cv::waitKey(0);
 
     // Farvelæg billedet med grå toner
     int arr[conflicts.size()+1] = {0};
-    for(int g = 0; g < 5; g++){
-    for( int i = 0; i < thresholdImage->rows; i++ ) {
-        for( int j = 0; j < thresholdImage->cols; j++ ) {
-            for( int k = 0; k < (int)conflicts.size(); k++){  // Hvordan løses denne warning?
-                if( thresholdImage->at<float>( i , j ) == conflicts[k].second ) {
-                    thresholdImage->at<float>( i , j ) = 255 - k;
+    for( int i = 0; i < (int)thresholdImage->rows; i++ ) {
+        for( int j = 0; j < (int)thresholdImage->cols; j++ ) {
+            for( int k = 0; k < (int)conflicts.size(); k++){ 
+                if( (int)thresholdImage->at<float>( i , j ) == conflicts[k].second ) {
+                    thresholdImage->at<float>( i , j ) = 255-k;
                     arr[k]++;
                 }
                 }
             }  
         }
-    }
+    // Print details about picture and number and size of labels. 
     std::cout << "Rows: "<< thresholdImage->rows << " Cols: " <<  thresholdImage->cols << " sum: " << thresholdImage->rows*thresholdImage->cols << std::endl;
     std::cout << "label: " << label << std::endl; 
     for(int i = 1; i <= label; i++){
@@ -238,6 +233,18 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
         }
     }
     
+}
+
+void myOpencvFucntions::erodeDilate(cv::Mat *thresholdImage) {
+    /*
+    * Takes a binary picture and runs a erode and a dilate function on it with a 3X3 kernel.
+    */
+    cv::Mat modified;
+    cv::Mat kernal = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3));
+
+    cv::erode(*thresholdImage, modified, kernal );
+    cv::dilate(modified, *thresholdImage, kernal);
+
 }
 
 
@@ -250,16 +257,12 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
 3. color++ 
 
 */
-void myOpencvFucntions::erodeDilate(cv::Mat *thresholdImage) {
-    cv::Mat modified;
-    cv::Mat kernal = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3));
-
-    cv::erode(*thresholdImage, modified, kernal );
-    cv::dilate(modified, *thresholdImage, kernal);
-
-}
-
 void myOpencvFucntions::RCC(cv::Mat *thresholdImage, int i, int j, int label) {
+    /*
+    * Recursive part of CCA function. 
+    * The fist if statement makes sure we dont step outside of the picture
+    * The second checks if a pixel in the cross  position is 255
+    */
     if(!(i-1 < 1) || !(j < 1) || !(i-1 > thresholdImage->cols -1) || !(j > thresholdImage->cols -1)){
         if(thresholdImage->at<uchar>( i-1 , j ) == 255 ){
             thresholdImage->at<uchar>( i-1 , j ) = label;
@@ -288,8 +291,13 @@ void myOpencvFucntions::RCC(cv::Mat *thresholdImage, int i, int j, int label) {
 
 
 void myOpencvFucntions::connectedComponentsAnalysisRecursion(cv::Mat *thresholdImage) {
+    /*
+    Recursive CCA
+    Takes a binary picture by ref and overrides with the CCA.  
+    */
     erodeDilate(thresholdImage);
-
+    //Create label = 0 so first label will be one.
+    // step through pixels, if pixel == 255 call recursion and increment label.
     int label = 0;
     for(int i = 1; i < thresholdImage->rows-1; i++) {
         for(int j = 1; j < thresholdImage->cols-1; j++) {
@@ -299,6 +307,7 @@ void myOpencvFucntions::connectedComponentsAnalysisRecursion(cv::Mat *thresholdI
             }
         }
     }
+    // Change color of labels to make it easier to see. 
     int arr[label+1] = {0};
     for(int i = 1; i < thresholdImage->rows -1; i++) {
         for(int j = 1; j < thresholdImage->cols -1; j++) {
@@ -310,6 +319,7 @@ void myOpencvFucntions::connectedComponentsAnalysisRecursion(cv::Mat *thresholdI
             }
         }
     }
+    // print details about picure and number and size of labels. 
     //std::cout << *thresholdImage << std::endl;
     std::cout << "Rows: "<< thresholdImage->rows << " Cols: " <<  thresholdImage->cols << " sum: " << thresholdImage->rows*thresholdImage->cols << std::endl;
     std::cout << "label: " << label << std::endl; 

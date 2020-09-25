@@ -28,9 +28,9 @@ int main()
 {
     cv::Mat img1; 
     float padding = 3;
-    //int weighted[3][3] = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}};
+    cv::Mat kernal = cv::Mat::ones( padding, padding, CV_8UC1 );
     int type = 0; // 0 (grayscale), 1 (color), -1 (unchanged)
-
+    
 
     myOpencvFucntions image(&img1, &type);
 
@@ -45,11 +45,11 @@ int main()
     //image.binarthredsholdedImage(&paddedImage);
     //image.connectedComponentsAnalysisRecursion(&paddedImage);
 
-    //image.filter(&paddedImage, &padding, &filteredImage, weighted);  
+    //image.filter(&paddedImage, &padding, &filteredImage, &kernal);  
     cv::namedWindow("img1", cv::WINDOW_AUTOSIZE); 
     cv::imshow("img1", img1); // Show window 
     cv::namedWindow("connectedComponentsAnalysisRecursion1", cv::WINDOW_AUTOSIZE); 
-    cv::imshow("connectedComponentsAnalysisRecursion1", paddedImage); // Show window 
+    cv::imshow("connectedComponentsAnalysisRecursion1", filteredImage); // Show window 
     
     cv::waitKey(0);
 
