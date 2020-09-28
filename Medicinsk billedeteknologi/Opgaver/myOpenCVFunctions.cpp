@@ -1,19 +1,30 @@
 #include "myOpenCVFunctions.h"
 
-myOpencvFucntions::myOpencvFucntions(cv::Mat *img, int *type)
+myOpencvFucntions::myOpencvFucntions(cv::Mat *img, int *type, std::string nameOfFile)
     {
-        std::string nameOfFile;
-        std::cout << "What is the name of your image?" << std::endl;
-        std::cin >> nameOfFile;
-        nameOfFile += ".jpg";
+        //std::cout << "What is the name of your image?" << std::endl;
+        //std::cin >> nameOfFile;
+        //nameOfFile += ".png";
         *img = cv::imread(nameOfFile, *type);
+        
         system("clear");
     }
 
+void myOpencvFucntions::showImage(cv::Mat *image, std::string name){
+    cv::namedWindow(name, cv::WINDOW_NORMAL);
+    cv::resizeWindow(name, 700, 700	);
+    cv::imshow(name, *image); // Show window 
+    cv::waitKey(0);
+}
 
+void myOpencvFucntions::calHistogram(cv::Mat *image, std::string name) {
+    int histogramBinCount[256] = {0};
+    float normalizedHeightOfBin[256];
 
-void myOpencvFucntions::calHistogram(cv::Mat *image) {
-    
+    for(int i= 0; i < (int)((sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]))); i++){
+        histogramBinCount[i] = 0;
+        normalizedHeightOfBin[i] = 0;
+        }
     for (int i = 0; i<image->rows; i++) {
         for (int j = 0; j<image->cols; j++) {
             histogramBinCount[image->at<uchar>(i,j)]++; // Vælg < > efter type af billede, grayscale: 8 bit (ex uint8_t) 
@@ -26,23 +37,32 @@ void myOpencvFucntions::calHistogram(cv::Mat *image) {
         */
         }
     }
+
     // Normalise
-    float maxP = image->rows * image->cols;
-    rangeOfPixels = (sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]));
-    float sum = 0;
+    int numberOfPixels = image->rows * image->cols, maxPixel = 0;
+    
+    int rangeOfPixels = (sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]));
+    
     for(int i = 0; i < rangeOfPixels; i++) {
-       float normalizedHeightOfBin = histogramBinCount[i]/maxP; //hvorfor normalisere vi med MAX?
-       //std::cout << i << ":    " << normalizedHeightOfBin << std::endl; // show Histogram values
-       sum += normalizedHeightOfBin;
+        // Normalise 
+        normalizedHeightOfBin[i] = (double)(histogramBinCount[i]/ numberOfPixels); 
+        // Find max for scale in histogram
+        if(normalizedHeightOfBin[i] > maxPixel) {
+            maxPixel = normalizedHeightOfBin[i];
+        }
+    }
+
+    cv::Mat bins = cv::Mat::zeros(windowSize, windowSize, CV_8UC1 );
+    for(int i = 0; i < rangeOfPixels; i++) { 
+        // Scale for hight of histogram 
+       float normalizedHeightOfBinScaled = (normalizedHeightOfBin[i] * windowSize) / maxPixel;       
        cv::line (
            bins, 
-           cv::Point(i*(windowSize/rangeOfPixels), windowSize), cv::Point(i*(windowSize/rangeOfPixels), windowSize-normalizedHeightOfBin), // gange 100 for procent
+           cv::Point(i*(windowSize/rangeOfPixels), windowSize), cv::Point(i*(windowSize/rangeOfPixels), windowSize-normalizedHeightOfBinScaled),
            cv::Scalar::all(255) );//hvid farve
     }
-    cv::imshow("name", bins);
+    showImage(&bins, name);
 }
-
-
 
 int myOpencvFucntions::getCols(cv::Mat *image) {
     return image->cols;
@@ -63,16 +83,18 @@ void myOpencvFucntions::filter(cv::Mat *imageIn, float *k, cv::Mat *imageOut, cv
     for(int i = index; i < imageIn->rows - index; i++) {
         for(int j = index; j < imageIn->cols - index; j++) {
             float sum = 0;
+            float sumOfKernel = 0;
             int counter1 = 0, counter2 = 0;
             for(int b = i - index; b <= i + index; b++) {
                 for(int h = j - index; h <= j + index; h++){
                     sum += imageIn->at<uchar>( b , h ) * kernal->at<uchar>(counter1 , counter2);
+                    sumOfKernel += kernal->at<uchar>(counter1 , counter2);
                     counter2++;
                     }
                 counter2 = 0;     
                 counter1++; 
                 }
-            imageOut->at<uchar>(i , j) =  round(sum / (*k * *k));
+            imageOut->at<uchar>(i , j) =  round(sum / sumOfKernel);
             }
            
         }
@@ -93,14 +115,14 @@ void myOpencvFucntions::zeroPadding(cv::Mat *image, float *k, cv::Mat *paddedIma
 Thredshold image:
 */
 
-void myOpencvFucntions::binarthredsholdedImage(cv::Mat *image) {
+void myOpencvFucntions::binarthredsholdedImage(cv::Mat *image, int tredsholdValue) {
     /*
     Ændre forholdet i < 120 = -1 hvis hvid baggrund --> Dette inverter billedet. 
     */
     
     for( int i = 0; i < image->rows; i++ ) {
         for( int j = 0; j < image->cols; j++) {
-            if( image->at<uchar>( i , j ) < 120 ) { //Aner ikke om 120 er en god værdi
+            if( image->at<uchar>( i , j ) < tredsholdValue ) { //Aner ikke om 120 er en god værdi
                 image->at<uchar>( i , j ) = -1;
             }else { 
                 image->at<uchar>( i , j ) =0;
@@ -130,7 +152,7 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
     // Thredshold billedet.
     for( int i = 1; i < thresholdImage->rows -1; i++ ) {
         for( int j = 1; j < thresholdImage->cols -1; j++) {
-            if( thresholdImage->at<float>( i , j ) < 200 ) { //Aner ikke om 120 er en god værdi
+            if( thresholdImage->at<float>( i , j ) < 200 ) { 
                 thresholdImage->at<float>( i , j ) = -1;
             }else { 
                 thresholdImage->at<float>( i , j ) = 0;
@@ -159,7 +181,7 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
                              thresholdImage->at<float>( i , j ) = thresholdImage->at<float>( i , j-1 );
                         }
                         // Check what label is smallst if both is above 0 and they not are equal to each other
-                         if(!((int)thresholdImage->at<float>( i , j-1 ) == ((int)thresholdImage->at<float>( i-1 , j ))) && ((int)thresholdImage->at<float>( i , j-1 ) != 0 && ((int)thresholdImage->at<float>( i-1 , j ) != 0))){
+                         if(((int)thresholdImage->at<float>( i , j-1 ) != ((int)thresholdImage->at<float>( i-1 , j ))) && ((int)thresholdImage->at<float>( i , j-1 ) != 0 && ((int)thresholdImage->at<float>( i-1 , j ) != 0))){
                             thresholdImage->at<float>( i , j ) = std::min(thresholdImage->at<float>( i-1 , j ) , thresholdImage->at<float>( i , j-1 ));  
                         } 
                         // Assign label if they are equal to each other.
@@ -170,11 +192,6 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
                 }
             }
         }
-    std::cout << *thresholdImage;
-   
-    cv::namedWindow("img at first label", cv::WINDOW_AUTOSIZE);
-    cv::imshow("img at first label", *thresholdImage);
-    cv::waitKey(0);
     /*
     * Check with vector pair if the correct label is assigned. 
     * Using a cross to check too be sure.
@@ -197,7 +214,9 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
                         }
                     }
                 }
-                conflicts.push_back(std::make_pair(thresholdImage->at<float>( i , j ), min));
+                if((int)thresholdImage->at<float>( i , j ) != min) {
+                    conflicts.push_back(std::make_pair(thresholdImage->at<float>( i , j ), min));
+                }
             }
         }
     }
@@ -224,10 +243,11 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
                 }
             }  
         }
+
     // Print details about picture and number and size of labels. 
     std::cout << "Rows: "<< thresholdImage->rows << " Cols: " <<  thresholdImage->cols << " sum: " << thresholdImage->rows*thresholdImage->cols << std::endl;
     std::cout << "label: " << label << std::endl; 
-    for(int i = 1; i <= label; i++){
+    for(int i = 0; i <= label; i++){
         if(arr[i] > 0) {
             std::cout << "label: " << i << " " << arr[i] << std::endl;
         }
@@ -265,7 +285,7 @@ void myOpencvFucntions::RCC(cv::Mat *thresholdImage, int i, int j, int label) {
     */
     if(!(i-1 < 1) || !(j < 1) || !(i-1 > thresholdImage->cols -1) || !(j > thresholdImage->cols -1)){
         if(thresholdImage->at<uchar>( i-1 , j ) == 255 ){
-            thresholdImage->at<uchar>( i-1 , j ) = label;
+            thresholdImage->at<uchar>(  i-1 , j ) = label;
             RCC(thresholdImage, i-1, j, label);
         }
     }
@@ -329,4 +349,33 @@ void myOpencvFucntions::connectedComponentsAnalysisRecursion(cv::Mat *thresholdI
         }
     }
 
+}
+
+void myOpencvFucntions::invaterGrayImage(cv::Mat *image) { 
+    for(int i = 0; i < image->rows; i ++) {
+        for( int j = 0; j < image->cols; j++) {
+            image->at<uchar>( i , j ) = 255 - (int)image->at<uchar>( i , j );
+        }
+    }
+}
+
+void myOpencvFucntions::stretchHistogram(cv::Mat *image){
+    int max = 0, min = 255;
+    
+    for(int i = 0; i < image->rows; i++) {
+        for(int j = 0; j < image->cols; j++) {
+            if(image->at<uchar>( i , j ) > max ) {
+                max = image->at<uchar>( i , j );
+            }
+            if( image->at<uchar>( i , j ) < min ) {
+                min = image->at<uchar>( i , j );
+            }
+        }
+    }
+
+    for(int i = 0; i < image->rows; i++) {
+        for(int j = 0; j < image->cols; j++) {
+            image->at<uchar>( i , j ) = ( (int)(image->at<uchar>( i , j ) - min) * 255) / ( max - min ); 
+        }
+    }
 }

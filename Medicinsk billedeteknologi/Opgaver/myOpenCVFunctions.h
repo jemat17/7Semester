@@ -13,25 +13,27 @@
 class myOpencvFucntions
 {
     public:
-        myOpencvFucntions(cv::Mat *img, int *type);
-        void calHistogram(cv::Mat *image);
-        void showHistogram();
+        myOpencvFucntions(cv::Mat *img, int *type, std::string nameOfFile);
+        void showImage(cv::Mat *image, std::string name);
+        void calHistogram(cv::Mat *image, std::string name);
         int getCols(cv::Mat *image);
         int getRows(cv::Mat *image);
         void filter(cv::Mat *imageIn, float *k, cv::Mat *imageOut, cv::Mat *kernal);
         void zeroPadding(cv::Mat *image, float *k, cv::Mat *paddedImage);
-        void binarthredsholdedImage(cv::Mat *image);
+        void binarthredsholdedImage(cv::Mat *image, int tredsholdValue);
         void connectedComponentsAnalysisFour(cv::Mat *thresholdImage);
         void connectedComponentsAnalysisRecursion(cv::Mat *thresholdImage);
         void erodeDilate(cv::Mat *thresholdImage);
         void RCC(cv::Mat *thresholdImage, int i, int j, int label);
+        void invaterGrayImage(cv::Mat *image);
+        void stretchHistogram(cv::Mat *image);
 
     
     
     private:
-    int rangeOfPixels = 256, windowSize = 700;
-    float histogramBinCount[256] = {0};
-    cv::Mat bins = cv::Mat::zeros(windowSize,windowSize, CV_8UC1 );
+    int windowSize = 700;
+    
+    
 
     
 };
