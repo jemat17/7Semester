@@ -110,7 +110,7 @@ int main()
     
     //imageHeart.stretchHistogram(&heart); 
     
-    //imageHeart.calHistogram(&heart, "Histogram Heart");
+    imageHeart.calHistogram(&heart, "Histogram Heart");
     /*
     imageHeart.erodeDilate(&heart);
 

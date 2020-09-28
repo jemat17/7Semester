@@ -19,47 +19,35 @@ void myOpencvFucntions::showImage(cv::Mat *image, std::string name){
 
 void myOpencvFucntions::calHistogram(cv::Mat *image, std::string name) {
     int histogramBinCount[256] = {0};
-    float normalizedHeightOfBin[256];
 
     for(int i= 0; i < (int)((sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]))); i++){
         histogramBinCount[i] = 0;
-        normalizedHeightOfBin[i] = 0;
         }
-    for (int i = 0; i<image->rows; i++) {
-        for (int j = 0; j<image->cols; j++) {
-            histogramBinCount[image->at<uchar>(i,j)]++; // Vælg < > efter type af billede, grayscale: 8 bit (ex uint8_t) 
-        /* 
-            Farve: <Vec3d> så den ved der er tre kanaler
-            Her til går den kun den første pixel (blå) RGB er omvendt i openCV så den hedder BGR
-            image.at<uint8_t>(i,j)[0] // tilgår blå
-            image.at<uint8_t>(i,j)[1] // tilgår grøn
-            image.at<uint8_t>(i,j)[2] // tilgår rød
-        */
+
+    for(int i = 0; i < image->rows; i++) {
+        for( int j = 0; j < image->cols; j++) {
+            histogramBinCount[image->at<uchar>( i , j )]++;
         }
     }
+
+    cv::Mat bins = cv::Mat::zeros(windowSize,windowSize, CV_8UC1 ); 
+
+     /*Find max pixel value*/
+    float numPixel = image->rows * image->cols;
+    float rangeOfPixels;
+    rangeOfPixels = (sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]));
 
     // Normalise
-    int numberOfPixels = image->rows * image->cols, maxPixel = 0;
-    
-    int rangeOfPixels = (sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]));
-    
-    for(int i = 0; i < rangeOfPixels; i++) {
-        // Normalise 
-        normalizedHeightOfBin[i] = (double)(histogramBinCount[i]/ numberOfPixels); 
-        // Find max for scale in histogram
-        if(normalizedHeightOfBin[i] > maxPixel) {
-            maxPixel = normalizedHeightOfBin[i];
-        }
-    }
-
-    cv::Mat bins = cv::Mat::zeros(windowSize, windowSize, CV_8UC1 );
-    for(int i = 0; i < rangeOfPixels; i++) { 
-        // Scale for hight of histogram 
-       float normalizedHeightOfBinScaled = (normalizedHeightOfBin[i] * windowSize) / maxPixel;       
-       cv::line (
+    for(int i = 0; i < rangeOfPixels; i++)
+    {
+       float normalizedHeightOfBin = (histogramBinCount[i]/numPixel) * 700; 
+       cv::line
+            (
            bins, 
-           cv::Point(i*(windowSize/rangeOfPixels), windowSize), cv::Point(i*(windowSize/rangeOfPixels), windowSize-normalizedHeightOfBinScaled),
-           cv::Scalar::all(255) );//hvid farve
+           cv::Point(i* (windowSize / rangeOfPixels) , windowSize), 
+           cv::Point(i* (windowSize / rangeOfPixels) , windowSize - normalizedHeightOfBin*50), // Find en god måde at scalere på!
+           cv::Scalar::all(255) //hvid farve
+           );
     }
     showImage(&bins, name);
 }
