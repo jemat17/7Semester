@@ -1,3 +1,5 @@
+// Copyright Non!
+// Author: Jeppe Dreyer Matzen
 #include "myOpenCVFunctions.h"
 
 myOpencvFucntions::myOpencvFucntions(cv::Mat *img, int *type, std::string nameOfFile)
@@ -6,7 +8,6 @@ myOpencvFucntions::myOpencvFucntions(cv::Mat *img, int *type, std::string nameOf
         //std::cin >> nameOfFile;
         //nameOfFile += ".png";
         *img = cv::imread(nameOfFile, *type);
-        
         system("clear");
     }
 
@@ -15,6 +16,30 @@ void myOpencvFucntions::showImage(cv::Mat *image, std::string name){
     cv::resizeWindow(name, 700, 700	);
     cv::imshow(name, *image); // Show window 
     cv::waitKey(0);
+}
+void myOpencvFucntions::histogramChanger(cv::Mat *image) {
+    int histogram[256] = {0};
+
+    for(int i= 0; i < (int)((sizeof(histogram))/(sizeof(histogram[0]))); i++){
+        histogram[i] = 0;
+    }
+    for(int i = 0; i < image->rows; i++) {
+       for( int j = 0; j < image->cols; j++) {
+            histogram[image->at<uchar>( i , j )]++;
+        }
+    }
+
+    for(int i= 1; i < (int)((sizeof(histogram))/(sizeof(histogram[0]))); i++){
+        if(histogram[i] > 30000 || (histogram[i] > histogram[i - 1] *1.3 && histogram[i] > histogram[i + 1] *1.3 ) ) {
+            for(int j = 0; j < image->rows; j++) {
+                for(int k = 0; k < image->cols; k++) {
+                    if(image->at<uchar>( j , k ) == i) {
+                        image->at<uchar>( j , k ) = 0;//(histogram[i - 1] + histogram[i + 1]) / 2 ;
+                    }
+                 }
+            }
+        }               
+     } 
 }
 
 void myOpencvFucntions::calHistogram(cv::Mat *image, std::string name) {
@@ -35,27 +60,34 @@ void myOpencvFucntions::calHistogram(cv::Mat *image, std::string name) {
      /*Find max pixel value*/
     float numPixel = image->rows * image->cols;
     float rangeOfPixels;
+    int maxOfPixels = histogramBinCount[0   ];
     rangeOfPixels = (sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]));
+
+    for(int i = 0; i < rangeOfPixels; i++) {
+        if(histogramBinCount[i] > maxOfPixels) {
+            maxOfPixels = histogramBinCount[i];
+        }
+    }
 
     // Normalise
     for(int i = 0; i < rangeOfPixels; i++)
     {
-       float normalizedHeightOfBin = (histogramBinCount[i]/numPixel) * 700; 
+       float normalizedHeightOfBin = (histogramBinCount[i]/numPixel) * windowSize; // scale til windowsize 
        cv::line
             (
            bins, 
            cv::Point(i* (windowSize / rangeOfPixels) , windowSize), 
-           cv::Point(i* (windowSize / rangeOfPixels) , windowSize - normalizedHeightOfBin*50), // Find en god måde at scalere på!
+           cv::Point(i* (windowSize / rangeOfPixels) , windowSize - normalizedHeightOfBin*50), // Find en bedre måde at scalere på, der ikke giver overflow! 
            cv::Scalar::all(255) //hvid farve
            );
     }
     showImage(&bins, name);
+    
 }
 
 int myOpencvFucntions::getCols(cv::Mat *image) {
     return image->cols;
 }
-
 
 
 int myOpencvFucntions::getRows(cv::Mat *image) {
@@ -120,20 +152,6 @@ void myOpencvFucntions::binarthredsholdedImage(cv::Mat *image, int tredsholdValu
 }
 
 
-/* connectedComponentsAnalysisFour
-1- Thredshold billedet så vi enten har sorte eller hvide pixels
-2. Label scan med for loop hver gang vi møder nyt pixel vindue unden naboer nyt label
-    If(igen nabo label++) 
-    
-    else if(nabo label update label list så vi ved at fx. 3 -> 2) 
-
-3. label lighed ud fra label list
-4. farv ift label
-
-Tjek venstre og op --> brug c++ funcitionen min( X, Y)
-
-uchar til 32 bit, overflow med label (4007)
-*/
 
 void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage){
     thresholdImage->convertTo(*thresholdImage, CV_32FC1);
@@ -243,10 +261,9 @@ void myOpencvFucntions::connectedComponentsAnalysisFour(cv::Mat *thresholdImage)
     
 }
 
+
 void myOpencvFucntions::erodeDilate(cv::Mat *thresholdImage) {
-    /*
-    * Takes a binary picture and runs a erode and a dilate function on it with a 3X3 kernel.
-    */
+
     cv::Mat modified;
     cv::Mat kernal = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3));
 
@@ -256,23 +273,12 @@ void myOpencvFucntions::erodeDilate(cv::Mat *thresholdImage) {
 }
 
 
-/* connectedComponentsAnalysis recursion
-1. Thredshold til og sæt 1 til minus 1 med for for 
-2.  tjek billedet med for for -> for at finde de steder med minus -1
-    if( i, j = -1)
-        Rursion delen RCC( label, i, j, image)
-            RCC skal tjekke om de omkring liggende er minus 1 hvis skal den kalde sig selv.
-3. color++ 
 
-*/
+
 void myOpencvFucntions::RCC(cv::Mat *thresholdImage, int i, int j, int label) {
-    /*
-    * Recursive part of CCA function. 
-    * The fist if statement makes sure we dont step outside of the picture
-    * The second checks if a pixel in the cross  position is 255
-    */
+
     if(!(i-1 < 1) || !(j < 1) || !(i-1 > thresholdImage->cols -1) || !(j > thresholdImage->cols -1)){
-        if(thresholdImage->at<uchar>( i-1 , j ) == 255 ){
+        if((int)thresholdImage->at<uchar>( i-1 , j ) == 255 ){
             thresholdImage->at<uchar>(  i-1 , j ) = label;
             RCC(thresholdImage, i-1, j, label);
         }
@@ -299,10 +305,6 @@ void myOpencvFucntions::RCC(cv::Mat *thresholdImage, int i, int j, int label) {
 
 
 void myOpencvFucntions::connectedComponentsAnalysisRecursion(cv::Mat *thresholdImage) {
-    /*
-    Recursive CCA
-    Takes a binary picture by ref and overrides with the CCA.  
-    */
     erodeDilate(thresholdImage);
     //Create label = 0 so first label will be one.
     // step through pixels, if pixel == 255 call recursion and increment label.
@@ -340,6 +342,7 @@ void myOpencvFucntions::connectedComponentsAnalysisRecursion(cv::Mat *thresholdI
 }
 
 void myOpencvFucntions::invaterGrayImage(cv::Mat *image) { 
+
     for(int i = 0; i < image->rows; i ++) {
         for( int j = 0; j < image->cols; j++) {
             image->at<uchar>( i , j ) = 255 - (int)image->at<uchar>( i , j );
@@ -348,22 +351,36 @@ void myOpencvFucntions::invaterGrayImage(cv::Mat *image) {
 }
 
 void myOpencvFucntions::stretchHistogram(cv::Mat *image){
+
     int max = 0, min = 255;
+    float histogramBinCount[256] = {0};
+    int sizeOfImage = image->rows * image->cols;
     
+    for(int i= 0; i < (int)((sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]))); i++){
+        histogramBinCount[i] = 0;
+        }
+
     for(int i = 0; i < image->rows; i++) {
-        for(int j = 0; j < image->cols; j++) {
-            if(image->at<uchar>( i , j ) > max ) {
-                max = image->at<uchar>( i , j );
-            }
-            if( image->at<uchar>( i , j ) < min ) {
-                min = image->at<uchar>( i , j );
-            }
+        for( int j = 0; j < image->cols; j++) {
+            histogramBinCount[image->at<uchar>( i , j )]++;
         }
     }
+    for(int i= 0; i < (int)((sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]))); i++){
+            histogramBinCount[i] =  histogramBinCount[i] / sizeOfImage ;
+        }
+    
+    for(int i= 0; i < (int)((sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]))); i++){
+        if( histogramBinCount[i] >  0.001 &&  i > max) { // En pixel skal udgøre mere end 1 procent af billedet for at blive talt med
+            max = i;
+        }
+        if( histogramBinCount[i] >  0.001 &&  i < min) {
+            min = i;
+        }
+    } 
 
     for(int i = 0; i < image->rows; i++) {
         for(int j = 0; j < image->cols; j++) {
-            image->at<uchar>( i , j ) = ( (int)(image->at<uchar>( i , j ) - min) * 255) / ( max - min ); 
+            image->at<uchar>( i , j ) = round( ((int)(image->at<uchar>( i , j ) - min) * 255) / ( max - min )); 
         }
     }
 }
