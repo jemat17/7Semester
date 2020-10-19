@@ -126,6 +126,14 @@ class myOpencvFucntions
          */
         void stretchHistogram(cv::Mat *image);
         void histogramChanger(cv::Mat *image);
+        /**
+         * Otsu thredshold 
+         *  Finds the optimal thredshold for a image with a binorminal distribution.
+         * 
+         * @param values Mat image objekt.
+         * @return Returns a thredsholded image
+         */
+        void otsuThredshold(cv::Mat *image);
     
     
     private:

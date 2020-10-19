@@ -384,3 +384,56 @@ void myOpencvFucntions::stretchHistogram(cv::Mat *image){
         }
     }
 }
+
+
+void myOpencvFucntions::otsuThredshold(cv::Mat *image){
+    long double histogramBinCount[256] = {0};
+
+    for(int i= 0; i < (int)((sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]))); i++){
+        histogramBinCount[i] = 0;
+        }
+
+    for(int i = 0; i < image->rows; i++) {
+        for( int j = 0; j < image->cols; j++) {
+            histogramBinCount[image->at<uchar>( i , j )]++;
+        }
+    }
+
+    cv::Mat bins = cv::Mat::zeros(windowSize,windowSize, CV_8UC1 ); 
+
+     /*Find max pixel value and normalize*/
+    long double numPixel = image->rows * image->cols, Totalmean = 0;
+    float rangeOfPixels = (sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]));
+
+    for(int i = 0; i < rangeOfPixels; i++) {
+        histogramBinCount[i] /= numPixel;
+        Totalmean += (i+1) * histogramBinCount[i]; //Total mean
+    }
+    // Otsu part:
+    // husk 1-256 så 0 ikke bliver ganget med 0
+    long double weight = 0, max = 0, classVar = 0, mean = 0;
+    int thredsval = 0;
+
+    for(int i= 0; i < (int)((sizeof(histogramBinCount))/(sizeof(histogramBinCount[0]))); i++){
+        
+        weight += histogramBinCount[i];
+        mean += (i+1) * histogramBinCount[i];
+
+        classVar = pow((( Totalmean * weight ) - mean ) , 2 ) / ( weight * ( 1 - weight ));
+
+        if(max < classVar){
+            max = classVar;
+            thredsval = i;
+        }
+    } 
+    for(int i = 0; i < image->rows; i++) {
+        for( int j = 0; j < image->cols; j++) {
+            if ( image->at<uchar>( i , j ) > thredsval ) {
+                image->at<uchar>( i , j ) = -1;
+            }
+            else {
+                image->at<uchar>( i , j ) = 0;
+            }
+        }
+    }
+}
