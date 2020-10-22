@@ -77,7 +77,7 @@ void myOpencvFucntions::calHistogram(cv::Mat *image, std::string name) {
             (
            bins, 
            cv::Point(i* (windowSize / rangeOfPixels) , windowSize), 
-           cv::Point(i* (windowSize / rangeOfPixels) , windowSize - normalizedHeightOfBin*50), // Find en bedre måde at scalere på, der ikke giver overflow! 
+           cv::Point(i* (windowSize / rangeOfPixels) , windowSize - normalizedHeightOfBin*20), // Find en bedre måde at scalere på, der ikke giver overflow! 
            cv::Scalar::all(255) //hvid farve
            );
     }
@@ -272,8 +272,17 @@ void myOpencvFucntions::erodeDilate(cv::Mat *thresholdImage) {
 
 }
 
+void myOpencvFucntions::erode(cv::Mat *thresholdImage) {
+    cv::Mat kernal = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3));
+    cv::erode(*thresholdImage, *thresholdImage, kernal );
 
+}
 
+void myOpencvFucntions::dilate(cv::Mat *thresholdImage) {
+    cv::Mat kernal = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3,3));
+    cv::dilate(*thresholdImage, *thresholdImage, kernal );
+
+}
 
 void myOpencvFucntions::RCC(cv::Mat *thresholdImage, int i, int j, int label) {
 
@@ -435,5 +444,139 @@ void myOpencvFucntions::otsuThredshold(cv::Mat *image){
                 image->at<uchar>( i , j ) = 0;
             }
         }
+    }
+}
+
+
+int myOpencvFucntions::otsuThredsholdValue(cv::Mat *image, int a, int b, int step){
+    int count = 0, counter = 0;
+
+
+    for(int i = a; i < a + step; i++) {
+        for( int j = b; j < b + step ; j++) {
+            count += image->at<uchar>( i , j );
+            counter++;
+        }
+    }
+    count = cvRound((float)count/(float)counter);  
+    return count;
+}
+
+
+void myOpencvFucntions::adaptiveThredshold(cv::Mat *image, int sizeOfBox){
+    int thredsholdboxSize = 50, increment = thredsholdboxSize * 2, C = 0;
+    int x1, x2, x3, x4, thredshold;
+
+    for( int k = thredsholdboxSize; k < image->rows; ) {
+        for( int l = thredsholdboxSize; l < image->cols; ) {
+            // Check for segemtation failure:
+            if( k - thredsholdboxSize >= 0 && l - thredsholdboxSize >= 0 && k + thredsholdboxSize < image->rows && l + thredsholdboxSize < image->cols) {            
+                // Første firekant
+                x1 = otsuThredsholdValue(image, k - thredsholdboxSize, l - thredsholdboxSize, thredsholdboxSize);
+                // Anden firekant
+                x2 = otsuThredsholdValue(image, k - thredsholdboxSize, l, thredsholdboxSize);
+                // Tredje firekant
+                x3 = otsuThredsholdValue(image, k, l - thredsholdboxSize, thredsholdboxSize);
+                // Fjerde firekant
+                x4 = otsuThredsholdValue(image, k, l, thredsholdboxSize);
+
+                thredshold = cvRound( ((x1 + x2 + x3 + x4) / 4) - C );
+                if(thredshold < 0) {
+                    thredshold = C;
+                }
+                for(int i = k - thredsholdboxSize; i < k + thredsholdboxSize; i ++ ) {
+                    for(int j = l - thredsholdboxSize; j < l + thredsholdboxSize; j++ ) {
+                        if ( image->at<uchar>( i , j ) > thredshold ) {
+                            image->at<uchar>( i , j ) = -1;
+                        }
+                        else {
+                            image->at<uchar>( i , j ) = 0;
+                        }
+                    }
+                }
+            }
+            if( k - thredsholdboxSize >= 0 && l - thredsholdboxSize >= 0 && k + thredsholdboxSize < image->rows && l + thredsholdboxSize > image->cols){
+                int ll = image->cols - thredsholdboxSize;
+                // Første firekant
+                x1 = otsuThredsholdValue(image, k - thredsholdboxSize, ll - thredsholdboxSize, thredsholdboxSize);
+                // Anden firekant
+                x2 = otsuThredsholdValue(image, k - thredsholdboxSize, ll, thredsholdboxSize);
+                // Tredje firekant
+                x3 = otsuThredsholdValue(image, k, ll - thredsholdboxSize, thredsholdboxSize);
+                // Fjerde firekant
+                x4 = otsuThredsholdValue(image, k, ll, thredsholdboxSize);
+
+                thredshold = cvRound( ((x1 + x2 + x3 + x4) / 4) - C );
+                if(thredshold < 0) {
+                    thredshold = C;
+                }
+                for(int i = k - thredsholdboxSize; i < k + thredsholdboxSize; i ++ ) {
+                    for(int j = l - thredsholdboxSize; j < image->cols; j++ ) {
+                        if ( image->at<uchar>( i , j ) > thredshold ) {
+                            image->at<uchar>( i , j ) = -1;
+                        }
+                        else {
+                            image->at<uchar>( i , j ) = C;
+                        }
+                    }
+                }
+            }
+            if( k - thredsholdboxSize >= 0 && l - thredsholdboxSize >= 0 && k + thredsholdboxSize > image->rows && l + thredsholdboxSize > image->cols){
+                int kk =  image->rows - thredsholdboxSize;
+                int ll = image->cols - thredsholdboxSize;
+                // Første firekant
+                x1 = otsuThredsholdValue(image, kk - thredsholdboxSize, ll - thredsholdboxSize, thredsholdboxSize);
+                // Anden firekant
+                x2 = otsuThredsholdValue(image, kk - thredsholdboxSize, ll, thredsholdboxSize);
+                // Tredje firekant
+                x3 = otsuThredsholdValue(image, kk, ll - thredsholdboxSize, thredsholdboxSize);
+                // Fjerde firekant
+                x4 = otsuThredsholdValue(image, kk, ll, thredsholdboxSize);
+                
+                thredshold = cvRound( ((x1 + x2 + x3 + x4) / 4) - C );
+                if(thredshold < 0) {
+                    thredshold = C;
+                }
+                for(int i = k - thredsholdboxSize; i < image->rows; i ++ ) {
+                    for(int j = l - thredsholdboxSize; j < image->cols; j++ ) {
+                        if ( image->at<uchar>( i , j ) > thredshold ) {
+                            image->at<uchar>( i , j ) = -1;
+                        }
+                        else {
+                            image->at<uchar>( i , j ) = 0;
+                        }
+                    }
+                }
+            }
+            
+            if( k - thredsholdboxSize >= 0 && l - thredsholdboxSize >= 0 && k + thredsholdboxSize > image->rows && l + thredsholdboxSize < image->cols){
+                int kk =  image->rows - thredsholdboxSize;
+                // Første firekant
+                x1 = otsuThredsholdValue(image, kk - thredsholdboxSize, l - thredsholdboxSize, thredsholdboxSize);
+                // Anden firekant
+                x2 = otsuThredsholdValue(image, kk - thredsholdboxSize, l, thredsholdboxSize);
+                // Tredje firekant
+                x3 = otsuThredsholdValue(image, kk, l - thredsholdboxSize, thredsholdboxSize);
+                // Fjerde firekant
+                x4 = otsuThredsholdValue(image, kk, l, thredsholdboxSize);
+                
+                thredshold = cvRound( ((x1 + x2 + x3 + x4) / 4) - C );
+                if(thredshold < 0) {
+                    thredshold = C;
+                }
+                for(int i = k - thredsholdboxSize; i < image->rows; i ++ ) {
+                    for(int j = l - thredsholdboxSize; j < l + thredsholdboxSize; j++ ) {
+                        if ( image->at<uchar>( i , j ) > thredshold ) {
+                            image->at<uchar>( i , j ) = -1;
+                        }
+                        else {
+                            image->at<uchar>( i , j ) = 0;
+                        }
+                    }
+                }
+            }
+        l += increment;
+        }
+    k += increment;
     }
 }

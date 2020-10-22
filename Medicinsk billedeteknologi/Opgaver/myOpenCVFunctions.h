@@ -102,6 +102,9 @@ class myOpencvFucntions
         */
         void erodeDilate(cv::Mat *thresholdImage);
 
+        void dilate(cv::Mat *thresholdImage);
+
+        void erode(cv::Mat *thresholdImage);
         /**
          * Recursive part of CCA function. 
          * The fist if statement makes sure we dont step outside of the picture
@@ -134,6 +137,8 @@ class myOpencvFucntions
          * @return Returns a thredsholded image
          */
         void otsuThredshold(cv::Mat *image);
+        int otsuThredsholdValue(cv::Mat *image, int a, int b, int step);
+        void adaptiveThredshold(cv::Mat *image, int sizeOfBox);
     
     
     private:
